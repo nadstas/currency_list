@@ -2,26 +2,25 @@ package com.example.currency_list.list.presentation
 
 import com.example.currency_list.data.Currency
 import com.example.currency_list.data.CurrencyListRepository
-import com.example.currency_list.extensions.AndroidArchExecutorExcension
+import com.example.currency_list.extensions.AndroidArchExecutorExtension
+import com.example.currency_list.extensions.CoroutinesDispatcherExtension
 import io.mockk.every
 import io.mockk.mockk
-import io.reactivex.schedulers.Schedulers
-import io.reactivex.schedulers.TestScheduler
-import io.reactivex.subjects.BehaviorSubject
-import io.reactivex.subjects.PublishSubject
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
-@ExtendWith(AndroidArchExecutorExcension::class)
+@ExtendWith(AndroidArchExecutorExtension::class, CoroutinesDispatcherExtension::class)
 internal class CurrencyListViewModelTest {
 
-    private val currenciesTestObservable = BehaviorSubject.create<List<Currency>>()
+    private val currenciesChannel = Channel<List<Currency>>()
     private val repository: CurrencyListRepository = mockk(relaxed = true) {
-        every { currencyListObservable } returns currenciesTestObservable
+        every { getCurrencies() } returns currenciesChannel.receiveAsFlow()
     }
-    private val viewModel = CurrencyListViewModel(repository, Schedulers.trampoline())
+    private val viewModel = CurrencyListViewModel(repository)
 
     @Test
     fun `refreshing state true by default`() {
@@ -29,10 +28,10 @@ internal class CurrencyListViewModelTest {
     }
 
     @Test
-    fun `reset refreshing state after date received`() {
+    fun `reset refreshing state after data received`() {
 
-        currenciesTestObservable.onNext(listOf(mockk()))
-        viewModel.currenciesList.blockingFirst()
+        viewModel.currenciesList.observeForever {}
+        currenciesChannel.offer(listOf(mockk()))
 
         assertFalse(viewModel.isRefreshing.value!!)
     }
@@ -40,8 +39,8 @@ internal class CurrencyListViewModelTest {
     @Test
     fun `set refreshing state when refresh called`() {
 
-        currenciesTestObservable.onNext(listOf(mockk()))
-        viewModel.currenciesList.blockingFirst()
+        viewModel.currenciesList.observeForever {}
+        currenciesChannel.offer(listOf(mockk()))
         viewModel.onRefresh()
 
         assertTrue(viewModel.isRefreshing.value!!)

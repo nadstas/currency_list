@@ -1,55 +1,70 @@
 package com.example.currency_list.data
 
 import android.util.Log
-import io.reactivex.Observable
-import io.reactivex.Observable.interval
-import io.reactivex.subjects.PublishSubject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import java.util.concurrent.TimeUnit
 
 private typealias CurrencyId = String
 
 private const val TAG = "CurrencyListRepository"
+private val ONE_SECOND = TimeUnit.SECONDS.toMillis(1)
 
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class CurrencyListRepository(
     private val webApiProvider: WebApiProvider = WebApiProvider()
 ) {
     private val allCurrencies: MutableMap<CurrencyId, Currency> = LinkedHashMap()
     private var visibleCurrencies: List<Currency> = listOf()
 
-    private val forceSubject = PublishSubject.create<Long>()
+    private val forceChannel = Channel<Unit>()
+    private val forceFlow = forceChannel.receiveAsFlow()
     private val webApi get() = webApiProvider.webApi
 
     private val thereIsNoCache get() = allCurrencies.isEmpty()
 
-    val currencyListObservable: Observable<List<Currency>> =
-        interval(0, 1, TimeUnit.SECONDS)
-            .mergeWith(forceSubject.doOnNext { clearVisibleItems() })
-            .flatMap {
+    fun getCurrencies(): Flow<List<Currency>> {
+        return merge(interval(ONE_SECOND), forceFlow.onEach { clearVisibleItems() })
+            .flatMapMerge {
                 loadCurrencies()
-                    .doOnError { Log.d(TAG, "Load error", it) }
-                    .onErrorReturn { allCurrencies.valuesList() }
+                    .catch {
+                        Log.e(TAG, "Load error", it)
+                        emit(allCurrencies.valuesList())
+                    }
             }
+            .flowOn(io)
+    }
 
-    private fun loadCurrencies(): Observable<List<Currency>> {
+    private fun loadCurrencies(): Flow<List<Currency>> {
         if (thereIsNoCache || visibleCurrencies.isEmpty()) {
-            return webApi.getAllCurrencies()
-                .doOnNext {
+            return flow { emit(webApi.getAllCurrencies()) }
+                .onEach {
                     allCurrencies.clear()
                     allCurrencies.putAll(it)
                 }
         }
 
         return loadOnlyVisible()
-            .doOnNext { allCurrencies.putAll(it) }
+            .onEach { allCurrencies.putAll(it) }
             .map { allCurrencies.valuesList() }
     }
 
-    private fun loadOnlyVisible(): Observable<List<Currency>> {
+    private fun loadOnlyVisible(): Flow<List<Currency>> {
         val visibleCurrencyIds = visibleCurrencies.map { it.id }.reduce { acc, s -> "$acc,$s" }
-        return webApi.getCurrencies(ids = visibleCurrencyIds)
+        return flow { emit(webApi.getCurrencies(ids = visibleCurrencyIds)) }
     }
 
-    fun forceUpdate() = forceSubject.onNext(1)
+    fun forceUpdate() = forceChannel.offer(Unit)
 
     fun setVisibleItems(visibleCurrencies: List<Currency>) {
         this.visibleCurrencies = visibleCurrencies

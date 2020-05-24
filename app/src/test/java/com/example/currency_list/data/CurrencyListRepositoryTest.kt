@@ -1,8 +1,12 @@
 package com.example.currency_list.data
 
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import io.reactivex.Observable.just
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 internal class CurrencyListRepositoryTest {
@@ -18,12 +22,14 @@ internal class CurrencyListRepositoryTest {
 
     @Test
     fun `correct merge visible elements`() {
-        every { mockApi.getAllCurrencies() } returns just(listOf(BTC, BMX, HPB))
-        every { mockApi.getCurrencies(ids = "BMX") } returns just(listOf(BMX_2))
+        coEvery { mockApi.getAllCurrencies() } returns listOf(BTC, BMX, HPB)
+        coEvery { mockApi.getCurrencies(ids = "BMX") } returns listOf(BMX_2)
 
         repository.setVisibleItems(listOf(BMX))
-        repository.currencyListObservable.test().awaitCount(2)
-            .assertValueAt(1, listOf(BTC, BMX_2, HPB))
+        runBlocking {
+            val result = repository.getCurrencies().take(2).toList().last()
+            assertEquals(result, listOf(BTC, BMX_2, HPB))
+        }
     }
 
     private fun currencyMock(currencyId: String, mockPrice: String): Currency {

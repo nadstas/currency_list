@@ -3,23 +3,20 @@ package com.example.currency_list.list.presentation
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import com.example.currency_list.data.Currency
 import com.example.currency_list.data.CurrencyListRepository
-import io.reactivex.Observable
-import io.reactivex.Scheduler
-import io.reactivex.android.schedulers.AndroidSchedulers
+import kotlinx.coroutines.flow.onEach
 
-class CurrencyListViewModel(
-    private val repository: CurrencyListRepository = CurrencyListRepository(),
-    mainThreadScheduler: Scheduler = AndroidSchedulers.mainThread()
-) : ViewModel() {
+class CurrencyListViewModel(private val repository: CurrencyListRepository) : ViewModel() {
 
-    private val _isRefreshing = MutableLiveData<Boolean>(true)
+    private val _isRefreshing = MutableLiveData(true)
+    val isRefreshing: LiveData<Boolean> = _isRefreshing
 
-    val isRefreshing = _isRefreshing as LiveData<Boolean>
-    val currenciesList: Observable<List<Currency>> = repository.currencyListObservable
-        .observeOn(mainThreadScheduler)
-        .doOnNext { _isRefreshing.value = false }
+    val currenciesList = repository.getCurrencies()
+        .onEach { _isRefreshing.value = false }
+        .asLiveData()
 
     fun onRefresh() {
         _isRefreshing.value = true

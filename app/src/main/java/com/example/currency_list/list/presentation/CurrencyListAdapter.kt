@@ -9,6 +9,8 @@ import com.example.currency_list.data.Currency
 
 class CurrencyListAdapter : ListAdapter<Currency, CurrencyViewHolder>(CurrencyItemDiffCallback()) {
 
+    fun sliceData(firstIndex: Int, lastIndex: Int) = currentList.slice(firstIndex..lastIndex)
+    
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CurrencyViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return CurrencyViewHolder(inflater.inflate(R.layout.currency_list_item, parent, false))
