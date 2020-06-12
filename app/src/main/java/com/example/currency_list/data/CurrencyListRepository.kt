@@ -1,26 +1,13 @@
 package com.example.currency_list.data
 
-import android.util.Log
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import java.util.concurrent.TimeUnit
 
 private typealias CurrencyId = String
 
-private const val TAG = "CurrencyListRepository"
 private val ONE_SECOND = TimeUnit.SECONDS.toMillis(1)
 
-@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class CurrencyListRepository(
     private val webApiProvider: WebApiProvider = WebApiProvider()
 ) {
@@ -34,15 +21,19 @@ class CurrencyListRepository(
     private val thereIsNoCache get() = allCurrencies.isEmpty()
 
     fun getCurrencies(): Flow<List<Currency>> {
-        return merge(interval(ONE_SECOND), forceFlow.onEach { clearVisibleItems() })
+        return ticker()
             .flatMapMerge {
                 loadCurrencies()
-                    .catch {
-                        Log.e(TAG, "Load error", it)
-                        emit(allCurrencies.valuesList())
-                    }
+                    .catch { emit(allCurrencies.valuesList()) }
             }
             .flowOn(io)
+    }
+
+    private fun ticker(): Flow<Unit> {
+        return merge(
+            interval(ONE_SECOND),
+            forceFlow.onEach { clearVisibleItems() }
+        )
     }
 
     private fun loadCurrencies(): Flow<List<Currency>> {
@@ -60,7 +51,7 @@ class CurrencyListRepository(
     }
 
     private fun loadOnlyVisible(): Flow<List<Currency>> {
-        val visibleCurrencyIds = visibleCurrencies.map { it.id }.reduce { acc, s -> "$acc,$s" }
+        val visibleCurrencyIds = visibleCurrencies.joinToString(",") { it.id }
         return flow { emit(webApi.getCurrencies(ids = visibleCurrencyIds)) }
     }
 

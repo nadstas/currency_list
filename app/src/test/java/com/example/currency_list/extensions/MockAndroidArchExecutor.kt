@@ -6,7 +6,7 @@ import org.junit.jupiter.api.extension.AfterEachCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 
-class AndroidArchExecutorExtension : BeforeEachCallback, AfterEachCallback {
+class MockAndroidArchExecutor : BeforeEachCallback, AfterEachCallback {
 
     override fun beforeEach(context: ExtensionContext?) {
         ArchTaskExecutor.getInstance().setDelegate(object : TaskExecutor() {

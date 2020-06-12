@@ -2,8 +2,8 @@ package com.example.currency_list.list.presentation
 
 import com.example.currency_list.data.Currency
 import com.example.currency_list.data.CurrencyListRepository
-import com.example.currency_list.extensions.AndroidArchExecutorExtension
-import com.example.currency_list.extensions.CoroutinesDispatcherExtension
+import com.example.currency_list.extensions.MockAndroidArchExecutor
+import com.example.currency_list.extensions.MockCoroutinesDispatcher
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
@@ -13,7 +13,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
-@ExtendWith(AndroidArchExecutorExtension::class, CoroutinesDispatcherExtension::class)
+@ExtendWith(
+    MockAndroidArchExecutor::class,
+    MockCoroutinesDispatcher::class
+)
 internal class CurrencyListViewModelTest {
 
     private val currenciesChannel = Channel<List<Currency>>()

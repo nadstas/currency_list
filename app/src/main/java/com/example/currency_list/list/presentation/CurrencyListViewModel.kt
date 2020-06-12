@@ -4,7 +4,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
-import androidx.lifecycle.viewModelScope
 import com.example.currency_list.data.Currency
 import com.example.currency_list.data.CurrencyListRepository
 import kotlinx.coroutines.flow.onEach
@@ -27,3 +26,6 @@ class CurrencyListViewModel(private val repository: CurrencyListRepository) : Vi
         repository.setVisibleItems(visibleCurrencies)
     }
 }
+
+internal fun CurrencyListFragment.currencyListViewModel() =
+    viewModel { CurrencyListViewModel(CurrencyListRepository()) }

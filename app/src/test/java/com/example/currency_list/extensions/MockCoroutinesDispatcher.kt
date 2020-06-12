@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class CoroutinesDispatcherExtension : BeforeAllCallback, AfterAllCallback {
+class MockCoroutinesDispatcher : BeforeAllCallback, AfterAllCallback {
 
     override fun beforeAll(context: ExtensionContext?) =
         Dispatchers.setMain(TestCoroutineDispatcher())

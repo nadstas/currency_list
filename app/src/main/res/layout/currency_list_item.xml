@@ -14,11 +14,23 @@
         android:textSize="20sp"
         tools:text="Bitcoin" />
 
-    <TextView
+    <TextSwitcher
         android:id="@+id/currency_list_item_price"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|center_vertical"
-        tools:text="7733.47519085" />
+        android:inAnimation="@anim/slide_in"
+        android:outAnimation="@anim/slide_out">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="7733.47519085" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </TextSwitcher>
 
 </FrameLayout>
